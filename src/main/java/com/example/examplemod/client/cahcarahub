@@ -1,0 +1,109 @@
+package com.example.examplemod.client;
+
+import com.example.examplemod.player.PlayerStats;
+import com.example.examplemod.player.PlayerStatsManager;
+
+import net.minecraft.client.Minecraft;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RenderGuiEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+@Mod.EventBusSubscriber(
+        modid = "examplemod",
+        value = Dist.CLIENT,
+        bus = Mod.EventBusSubscriber.Bus.FORGE
+)
+public class ChakraHud {
+
+    @SubscribeEvent
+    public static void renderChakra(RenderGuiEvent.Post event) {
+
+        Minecraft minecraft = Minecraft.getInstance();
+
+        if (minecraft.player == null) {
+            return;
+        }
+
+        PlayerStats stats =
+                PlayerStatsManager.get(minecraft.player);
+
+        int atual = stats.getChakraAtual();
+        int maximo = stats.getChakara();
+
+        if (maximo <= 0) {
+            return;
+        }
+
+        // =========================
+        // TAMANHO DA BARRA
+        // =========================
+
+        int largura = 80;
+        int altura = 8;
+
+        // =========================
+        // POSIÇÃO
+        // =========================
+
+        int x =
+                event.getWindow().getGuiScaledWidth() / 2 + 10;
+
+        int y =
+                event.getWindow().getGuiScaledHeight() - 50;
+
+        // =========================
+        // FUNDO
+        // =========================
+
+        event.getGuiGraphics().fill(
+                x,
+                y,
+                x + largura,
+                y + altura,
+                0xFF222222
+        );
+
+        // =========================
+        // QUANTO DE CHAKRA TEM
+        // =========================
+
+        float porcentagem =
+                (float) atual / maximo;
+
+        int larguraAtual =
+                (int) (largura * porcentagem);
+
+        // =========================
+        // CHAKRA
+        // =========================
+
+        event.getGuiGraphics().fill(
+                x,
+                y,
+                x + larguraAtual,
+                y + altura,
+                0xFF00AAFF
+        );
+
+        // =========================
+        // TEXTO
+        // =========================
+
+        String texto =
+                atual + " / " + maximo;
+
+        int textoX =
+                event.getWindow().getGuiScaledWidth() / 2
+                        - minecraft.font.width(texto) / 2
+                        + 50;
+
+        event.getGuiGraphics().drawString(
+                minecraft.font,
+                texto,
+                textoX,
+                y - 10,
+                0xFFFFFF
+        );
+    }
+}

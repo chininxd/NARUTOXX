@@ -1,0 +1,17 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "examplemod:item/espada_de_kusanagi"
+  },
+
+
+"display": {
+     "firstperson_righthand": {
+       "translation": [0, 6, 0],
+       "rotation": [0, 0, 0],
+       "scale": [1, 1, 1]
+     }
+   }
+
+  }
+

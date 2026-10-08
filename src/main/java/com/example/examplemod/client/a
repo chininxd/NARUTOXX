@@ -1,0 +1,11 @@
+Claro. Vou deixar todas as posições dos elementos separadas no começo do código, para você alterar somente os números.
+
+Regra:
+
+X = 0 → centralizado
+X positivo → direita
+X negativo → esquerda
+Y positivo → para baixo
+Y negativo → para cima
+
+Também corrigi o buttonY do clique para ficar igual ao buttonY do desenho (105).

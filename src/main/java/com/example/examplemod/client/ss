@@ -1,0 +1,445 @@
+package com.example.examplemod.client;
+
+import com.example.examplemod.network.DojutsuStatePacket;
+import com.example.examplemod.player.PlayerStats;
+import com.example.examplemod.player.PlayerStatsManager;
+
+import com.mojang.blaze3d.platform.NativeImage;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.resources.ResourceLocation;
+
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RenderPlayerEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+import java.io.InputStream;
+
+@Mod.EventBusSubscriber(
+        modid = "examplemod",
+        value = Dist.CLIENT
+)
+public class PlayerSkinHandler {
+
+    // =========================================================
+    // CACHE
+    // =========================================================
+
+    private static int ultimaPeleAplicada = -1;
+    private static int ultimoOlhoAplicado = -1;
+
+    private static boolean ultimoSharingan = false;
+    private static boolean ultimoMangekyou = false;
+    private static boolean ultimoByakugan = false;
+
+    // =========================================================
+    // TEXTURA DINÂMICA
+    // =========================================================
+
+    private static DynamicTexture texturaCombinada = null;
+
+    // =========================================================
+    // SHARINGAN
+    // =========================================================
+
+    private static final ResourceLocation SHARINGAN_1 =
+            new ResourceLocation(
+                    "examplemod",
+                    "textures/dojutso/sharingan_1.png"
+            );
+
+    // =========================================================
+    // BYAKUGAN
+    // =========================================================
+
+    private static final ResourceLocation BYAKUGAN =
+            new ResourceLocation(
+                    "examplemod",
+                    "textures/dojutso/byakugan.png"
+            );
+
+    // =========================================================
+    // RENDER DO PLAYER
+    // =========================================================
+
+    @SubscribeEvent
+    public static void onRenderPlayer(
+            RenderPlayerEvent.Pre event
+    ) {
+
+        // =====================================================
+        // VERIFICA SE É UM PLAYER
+        // =====================================================
+
+        if (!(event.getEntity()
+                instanceof AbstractClientPlayer player)) {
+
+            return;
+        }
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        // =====================================================
+        // SOMENTE O PLAYER LOCAL
+        // =====================================================
+
+        if (minecraft.player != player) {
+            return;
+        }
+
+        // =====================================================
+        // PEGA OS STATUS DO PLAYER
+        // =====================================================
+
+        PlayerStats stats =
+                PlayerStatsManager.get(player);
+
+        int corPele =
+                stats.getCorPele();
+
+        int corOlhos =
+                stats.getCorOlhos();
+
+        // =====================================================
+        // PEGA ESTADO DO DOJUTSU
+        // =====================================================
+
+        boolean sharingan =
+                DojutsuStatePacket.isClientSharinganAtivo();
+
+        boolean mangekyou =
+                DojutsuStatePacket.isClientMangekyouAtivo();
+
+        boolean byakugan =
+                DojutsuStatePacket.isClientByakuganAtivo();
+
+        // =====================================================
+        // GARANTE PELE VÁLIDA
+        // =====================================================
+
+        if (corPele < 1) {
+            corPele = 1;
+        }
+
+        if (corPele > CustomizationScreen.PELES.length) {
+            corPele =
+                    CustomizationScreen.PELES.length;
+        }
+
+        // =====================================================
+        // GARANTE OLHOS VÁLIDOS
+        // =====================================================
+
+        if (corOlhos < 1) {
+            corOlhos = 1;
+        }
+
+        if (corOlhos > CustomizationScreen.OLHOS.length) {
+            corOlhos =
+                    CustomizationScreen.OLHOS.length;
+        }
+
+        // =====================================================
+        // TEXTURA ORIGINAL DO PLAYER
+        // =====================================================
+
+        ResourceLocation skinOriginal =
+                player.getSkinTextureLocation();
+
+        // =====================================================
+        // VERIFICA SE PRECISA ATUALIZAR
+        // =====================================================
+
+        boolean precisaAtualizar =
+                ultimaPeleAplicada != corPele
+                        || ultimoOlhoAplicado != corOlhos
+                        || ultimoSharingan != sharingan
+                        || ultimoMangekyou != mangekyou
+                        || ultimoByakugan != byakugan;
+
+        if (!precisaAtualizar) {
+            return;
+        }
+
+        // =====================================================
+        // ESCOLHE A TEXTURA DA PELE
+        // =====================================================
+
+        ResourceLocation pele =
+                CustomizationScreen.PELES[
+                        corPele - 1
+                        ];
+
+        // =====================================================
+        // ESCOLHE A TEXTURA DOS OLHOS
+        // =====================================================
+
+        ResourceLocation olhos;
+
+        if (mangekyou) {
+
+            olhos = SHARINGAN_1;
+
+            System.out.println(
+                    "[NARUTOX] OLHOS ATIVOS: MANGEKYOU"
+            );
+
+        } else if (sharingan) {
+
+            olhos = SHARINGAN_1;
+
+            System.out.println(
+                    "[NARUTOX] OLHOS ATIVOS: SHARINGAN"
+            );
+
+        } else if (byakugan) {
+
+            olhos = BYAKUGAN;
+
+            System.out.println(
+                    "[NARUTOX] OLHOS ATIVOS: BYAKUGAN"
+            );
+
+        } else {
+
+            olhos =
+                    CustomizationScreen.OLHOS[
+                            corOlhos - 1
+                            ];
+
+            System.out.println(
+                    "[NARUTOX] OLHOS ATIVOS: NORMAL"
+            );
+        }
+
+        // =====================================================
+        // CRIA A TEXTURA COMBINADA
+        // =====================================================
+
+        try {
+
+            NativeImage imagemPele;
+            NativeImage imagemOlhos;
+
+            // =================================================
+            // CARREGA PELE
+            // =================================================
+
+            try (InputStream stream =
+                         minecraft.getResourceManager()
+                                 .open(pele)) {
+
+                imagemPele =
+                        NativeImage.read(stream);
+            }
+
+            // =================================================
+            // CARREGA OLHOS
+            // =================================================
+
+            try (InputStream stream =
+                         minecraft.getResourceManager()
+                                 .open(olhos)) {
+
+                imagemOlhos =
+                        NativeImage.read(stream);
+            }
+
+            // =================================================
+            // VERIFICA TAMANHO
+            // =================================================
+
+            if (imagemPele.getWidth()
+                    != imagemOlhos.getWidth()
+                    || imagemPele.getHeight()
+                    != imagemOlhos.getHeight()) {
+
+                System.out.println(
+                        "[NARUTOX] ERRO: PELE E OLHOS POSSUEM TAMANHOS DIFERENTES!"
+                );
+
+                imagemPele.close();
+                imagemOlhos.close();
+
+                return;
+            }
+
+            // =================================================
+            // CRIA IMAGEM FINAL
+            // =================================================
+
+            NativeImage imagemFinal =
+                    new NativeImage(
+                            imagemPele.getWidth(),
+                            imagemPele.getHeight(),
+                            true
+                    );
+
+            // =================================================
+            // COPIA A PELE INTEIRA
+            // =================================================
+
+            for (int y = 0;
+                 y < imagemPele.getHeight();
+                 y++) {
+
+                for (int x = 0;
+                     x < imagemPele.getWidth();
+                     x++) {
+
+                    int pixel =
+                            imagemPele.getPixelRGBA(
+                                    x,
+                                    y
+                            );
+
+                    imagemFinal.setPixelRGBA(
+                            x,
+                            y,
+                            pixel
+                    );
+                }
+            }
+
+            // =================================================
+            // COLOCA OS OLHOS SOBRE A PELE
+            // =================================================
+
+            for (int y = 0;
+                 y < imagemOlhos.getHeight();
+                 y++) {
+
+                for (int x = 0;
+                     x < imagemOlhos.getWidth();
+                     x++) {
+
+                    int olho =
+                            imagemOlhos.getPixelRGBA(
+                                    x,
+                                    y
+                            );
+
+                    // -----------------------------------------
+                    // PEGA ALPHA
+                    // -----------------------------------------
+
+                    int alpha =
+                            olho >>> 24;
+
+                    // -----------------------------------------
+                    // IGNORA PIXEL TRANSPARENTE
+                    // -----------------------------------------
+
+                    if (alpha == 0) {
+                        continue;
+                    }
+
+                    // -----------------------------------------
+                    // SOBRESCREVE PIXEL
+                    // -----------------------------------------
+
+                    imagemFinal.setPixelRGBA(
+                            x,
+                            y,
+                            olho
+                    );
+                }
+            }
+
+            // =================================================
+            // FECHA TEXTURA ANTERIOR
+            // =================================================
+
+            if (texturaCombinada != null) {
+
+                texturaCombinada.close();
+
+                texturaCombinada = null;
+            }
+
+            // =================================================
+            // CRIA TEXTURA DINÂMICA
+            // =================================================
+
+            texturaCombinada =
+                    new DynamicTexture(
+                            imagemFinal
+                    );
+
+            // =================================================
+            // PEGA TEXTURE MANAGER
+            // =================================================
+
+            TextureManager textureManager =
+                    minecraft.getTextureManager();
+
+            // =================================================
+            // REGISTRA A TEXTURA COMBINADA
+            //
+            // IMPORTANTE:
+            // usamos o MESMO ResourceLocation da skin
+            // que o PlayerRenderer usa.
+            // =================================================
+
+            textureManager.register(
+                    skinOriginal,
+                    texturaCombinada
+            );
+
+            // =================================================
+            // FECHA IMAGENS DE ORIGEM
+            // =================================================
+
+            imagemPele.close();
+            imagemOlhos.close();
+
+            // =================================================
+            // ATUALIZA CACHE
+            // =================================================
+
+            ultimaPeleAplicada =
+                    corPele;
+
+            ultimoOlhoAplicado =
+                    corOlhos;
+
+            ultimoSharingan =
+                    sharingan;
+
+            ultimoMangekyou =
+                    mangekyou;
+
+            ultimoByakugan =
+                    byakugan;
+
+            System.out.println(
+                    "[NARUTOX] TEXTURA DO PLAYER ATUALIZADA"
+            );
+
+            System.out.println(
+                    "[NARUTOX] PELE: "
+                            + corPele
+                            + " | OLHOS: "
+                            + corOlhos
+            );
+
+            System.out.println(
+                    "[NARUTOX] SKIN LOCATION: "
+                            + skinOriginal
+            );
+
+        } catch (Exception erro) {
+
+            System.out.println(
+                    "[NARUTOX] ERRO AO COMBINAR PELE + OLHOS:"
+            );
+
+            erro.printStackTrace();
+        }
+    }
+}
